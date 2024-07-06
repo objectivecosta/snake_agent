@@ -3,6 +3,7 @@ Snake Eater
 Made with PyGame
 """
 import enum
+import math
 from typing import Self
 
 import sys, random
@@ -13,6 +14,8 @@ WHITE_COLOR = pygame.Color(255, 255, 255)
 RED_COLOR = pygame.Color(255, 0, 0)
 GREEN_COLOR = pygame.Color(0, 255, 0)
 BLUE_COLOR = pygame.Color(0, 0, 255)
+
+type MoveResult = tuple[float, bool]
 
 
 class GameState(enum.Enum):
@@ -63,7 +66,7 @@ class Position:
 
 
 class SnakeGame:
-    def __init__(self, speed=25, is_agent_playing=False):
+    def __init__(self, speed=25, game_width=48, game_height=48, is_agent_playing=False):
         self.point_size = 10
         self.is_agent_playing = is_agent_playing
 
@@ -85,8 +88,8 @@ class SnakeGame:
         self.speed = speed
 
         # Point size
-        self.width = 48
-        self.height = 48
+        self.width = game_width
+        self.height = game_height
 
         # Window size
         self.frame_size_x = self.width * self.point_size
@@ -103,11 +106,27 @@ class SnakeGame:
         # Initialise game window
         pygame.display.set_caption('Snake Eater')
         self.game_window = pygame.display.set_mode((self.frame_size_x, self.frame_size_y))
+        self.game_window.fill(BLACK_COLOR)
 
         # FPS (frames per second) controller
         self.fps_controller = pygame.time.Clock()
 
         # Init Snake
+        self.snake_pos = Position(0,0,self.point_size)
+        self.snake_body = [
+            Position(0,0,self.point_size),
+        ]
+
+        # Init Food
+        self.food_pos = Position(0,0,self.point_size)
+        self.food_is_visible = False
+
+        self.score = 0
+        self.tick_count = 0
+
+        self.restart()
+
+    def restart(self):
         self.snake_pos = Position(10, 5, self.point_size)
         self.snake_body = [
             Position(10, 5, self.point_size),
@@ -120,6 +139,7 @@ class SnakeGame:
         self.food_is_visible = True
 
         self.score = 0
+        self.tick_count = 0
 
     def random_position(self) -> Position:
         return Position(
@@ -128,22 +148,13 @@ class SnakeGame:
             self.point_size
         )
 
-    def receive_input(self):
-        if self.is_agent_playing:
-            self.receive_agent_events()
-        else:
-            self.receive_keyboard_events()
-
-    def receive_agent_events(self):
-        pass
-
     def receive_keyboard_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             # Whenever a key is pressed down
-            elif event.type == pygame.KEYDOWN:
+            elif event.type == pygame.KEYDOWN and self.is_agent_playing == False:
                 # W -> Up; S -> Down; A -> Left; D -> Right
                 if event.key == pygame.K_UP or event.key == ord('w'):
                     self.change_to = Direction.UP
@@ -157,12 +168,18 @@ class SnakeGame:
                 if event.key == pygame.K_ESCAPE:
                     pygame.event.post(pygame.event.Event(pygame.QUIT))
 
-    def game_logic(self):
-        self.receive_input()
+    def tick(self) -> MoveResult:
+        self.tick_count += 1
+        reward = 0.0
+        done = False
+
+        self.receive_keyboard_events()
 
         # Making sure the snake cannot move in the opposite direction instantaneously
         if self.direction.is_valid_change(self.change_to):
             self.direction = self.change_to
+
+        distance_to_food_before = math.sqrt(pow(abs(self.snake_pos.x - self.food_pos.x), 2) + pow(abs(self.snake_pos.y - self.food_pos.y), 2))
 
         self.snake_pos = self.snake_pos.clone()
 
@@ -176,12 +193,22 @@ class SnakeGame:
         if self.direction == Direction.RIGHT:
             self.snake_pos.x += 1
 
+        distance_to_food_after = math.sqrt(pow(abs(self.snake_pos.x - self.food_pos.x), 2) + pow(abs(self.snake_pos.y - self.food_pos.y), 2))
+
         # Snake body growing mechanism
         self.snake_body.insert(0, self.snake_pos)
         if self.snake_pos == self.food_pos:
+            reward += 1.0
             self.score += 1
             self.food_is_visible = False
         else:
+
+            if distance_to_food_before < distance_to_food_after:
+                # We got closer. Incentivize this behavior:
+                reward += 0.25
+            else:
+                reward -= 0.1
+
             self.snake_body.pop()
 
         # Spawning food on the screen
@@ -206,15 +233,17 @@ class SnakeGame:
 
         # Game Over conditions
         # Getting out of bounds
-        if self.snake_pos.x < 0 or self.snake_pos.x > self.width:
-            self.display_game_over()
-        if self.snake_pos.y < 0 or self.snake_pos.y > self.height:
-            self.display_game_over()
+        if self.snake_pos.x < 0 or self.snake_pos.x >= self.width:
+            reward = -1.0
+            done = True
+        if self.snake_pos.y < 0 or self.snake_pos.y >= self.height:
+            reward = -1.0
+            done = True
 
         # Touching the snake body
-        for block in self.snake_body[1:]:
-            if self.snake_pos.x == block.x and self.snake_pos.y == block.y:
-                self.display_game_over()
+        if self.is_collision(self.snake_pos):
+            reward = -1.0
+            done = True
 
         self.display_score(False, WHITE_COLOR, 'consolas', 20)
         # Refresh game screen
@@ -222,10 +251,26 @@ class SnakeGame:
         # Refresh rate
         self.fps_controller.tick(self.speed)
 
+        return reward, done
+
+    def is_collision(self, position: Position) -> bool:
+        for block in self.snake_body[1:]:
+            if position.x == block.x and position.y == block.y:
+                return True
+
+        return False
+
     def game_loop(self):
+        if self.is_agent_playing:
+            return
+
         while True:
             if self.game_state == GameState.RUNNING:
-                self.game_logic()
+                _, done = self.tick()
+
+                if done:
+                    self.game_state = GameState.STOPPED
+                    self.display_game_over()
             else:
                 pass
 
@@ -241,7 +286,6 @@ class SnakeGame:
         pygame.display.flip()
 
     def display_game_over(self):
-        self.game_state = GameState.STOPPED
         my_font = pygame.font.SysFont('times new roman', 90)
         game_over_surface = my_font.render('YOU DIED', True, RED_COLOR)
         game_over_rect = game_over_surface.get_rect()
