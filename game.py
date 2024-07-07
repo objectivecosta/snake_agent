@@ -12,7 +12,7 @@ import pygame
 BLACK_COLOR = pygame.Color(0, 0, 0)
 WHITE_COLOR = pygame.Color(255, 255, 255)
 RED_COLOR = pygame.Color(255, 0, 0)
-GREEN_COLOR = pygame.Color(0, 255, 0)
+GREEN_COLOR = pygame.Color(0, 255 , 0)
 BLUE_COLOR = pygame.Color(0, 0, 255)
 
 type MoveResult = tuple[float, bool]
@@ -46,6 +46,50 @@ class Direction(enum.Enum):
         return True
 
 
+class DirectionChange(enum.Enum):
+    LEFTWARDS = 0
+    NONE = 1
+    RIGHTWARDS = 2
+
+    def applied_to(self, direction: Direction) -> Direction:
+        if self == DirectionChange.LEFTWARDS:
+            return self._shift_left(direction)
+        elif self == DirectionChange.RIGHTWARDS:
+            return self._shift_right(direction)
+        else:
+            return direction
+
+    def index_from_action(self) -> int:
+        return self.value
+
+    def array_from_action(self) -> list:
+        list = [0,0,0]
+        list[self.index_from_action()] = 1
+        return list
+
+    @staticmethod
+    def _shift_left(direction: Direction) -> Direction:
+        if direction == Direction.LEFT:
+            return Direction.DOWN
+        elif direction == Direction.UP:
+            return Direction.LEFT
+        elif direction == Direction.RIGHT:
+            return Direction.UP
+        elif direction == Direction.DOWN:
+            return Direction.RIGHT
+
+    @staticmethod
+    def _shift_right(direction: Direction) -> Direction:
+        if direction == Direction.LEFT:
+            return Direction.UP
+        elif direction == Direction.UP:
+            return Direction.RIGHT
+        elif direction == Direction.RIGHT:
+            return Direction.DOWN
+        elif direction == Direction.DOWN:
+            return Direction.LEFT
+
+
 class Position:
     def __init__(self, x: int, y: int, point_size: int = 10):
         self.x = x
@@ -57,6 +101,16 @@ class Position:
 
     def as_pixel_tuple(self):
         return self.x * self.point_size, self.y * self.point_size
+
+    def plus_direction(self, direction: Direction) -> Self:
+        if direction == Direction.LEFT:
+            return Position(self.x - 1, self.y)
+        elif direction == Direction.UP:
+            return Position(self.x, self.y - 1)
+        elif direction == Direction.RIGHT:
+            return Position(self.x + 1, self.y)
+        elif direction == Direction.DOWN:
+            return Position(self.x, self.y + 1)
 
     def __eq__(self, other: Self) -> bool:
         return self.as_tuple() == other.as_tuple()
@@ -112,13 +166,13 @@ class SnakeGame:
         self.fps_controller = pygame.time.Clock()
 
         # Init Snake
-        self.snake_pos = Position(0,0,self.point_size)
+        self.snake_pos = Position(0, 0, self.point_size)
         self.snake_body = [
-            Position(0,0,self.point_size),
+            Position(0, 0, self.point_size),
         ]
 
         # Init Food
-        self.food_pos = Position(0,0,self.point_size)
+        self.food_pos = Position(0, 0, self.point_size)
         self.food_is_visible = False
 
         self.score = 0
@@ -175,11 +229,22 @@ class SnakeGame:
 
         self.receive_keyboard_events()
 
+        is_danger_ahead = self.is_collision(
+            position=self.snake_pos.plus_direction(DirectionChange.NONE.applied_to(self.direction))
+        )
+
+        if self.change_to == self.direction and not is_danger_ahead:
+            reward += 0.1 # Incentivize stability
+        elif self.change_to != self.direction and not is_danger_ahead:
+            reward -= 0.1 # De-incentivize useless changes
+
         # Making sure the snake cannot move in the opposite direction instantaneously
         if self.direction.is_valid_change(self.change_to):
             self.direction = self.change_to
 
-        distance_to_food_before = math.sqrt(pow(abs(self.snake_pos.x - self.food_pos.x), 2) + pow(abs(self.snake_pos.y - self.food_pos.y), 2))
+        distance_to_food_before = math.sqrt(
+            pow(self.food_pos.x - self.snake_pos.x, 2) + pow(self.food_pos.y - self.snake_pos.y, 2)
+        )
 
         self.snake_pos = self.snake_pos.clone()
 
@@ -193,7 +258,9 @@ class SnakeGame:
         if self.direction == Direction.RIGHT:
             self.snake_pos.x += 1
 
-        distance_to_food_after = math.sqrt(pow(abs(self.snake_pos.x - self.food_pos.x), 2) + pow(abs(self.snake_pos.y - self.food_pos.y), 2))
+        distance_to_food_after = math.sqrt(
+            pow(self.food_pos.x - self.snake_pos.x, 2) + pow(self.food_pos.y - self.snake_pos.y, 2)
+        )
 
         # Snake body growing mechanism
         self.snake_body.insert(0, self.snake_pos)
@@ -202,12 +269,11 @@ class SnakeGame:
             self.score += 1
             self.food_is_visible = False
         else:
-
-            if distance_to_food_before < distance_to_food_after:
+            if distance_to_food_before > distance_to_food_after:
                 # We got closer. Incentivize this behavior:
                 reward += 0.25
             else:
-                reward -= 0.1
+                reward -= 0.25
 
             self.snake_body.pop()
 
@@ -232,15 +298,8 @@ class SnakeGame:
                                      self.point_size, self.point_size))
 
         # Game Over conditions
-        # Getting out of bounds
-        if self.snake_pos.x < 0 or self.snake_pos.x >= self.width:
-            reward = -1.0
-            done = True
-        if self.snake_pos.y < 0 or self.snake_pos.y >= self.height:
-            reward = -1.0
-            done = True
 
-        # Touching the snake body
+        # Touching the snake body / edges
         if self.is_collision(self.snake_pos):
             reward = -1.0
             done = True
@@ -249,7 +308,9 @@ class SnakeGame:
         # Refresh game screen
         pygame.display.update()
         # Refresh rate
-        self.fps_controller.tick(self.speed)
+
+        if not self.is_agent_playing:
+            self.fps_controller.tick(self.speed)
 
         return reward, done
 
@@ -257,6 +318,11 @@ class SnakeGame:
         for block in self.snake_body[1:]:
             if position.x == block.x and position.y == block.y:
                 return True
+
+        if position.x < 0 or position.x >= self.width:
+            return True
+        if position.y < 0 or position.y >= self.height:
+            return True
 
         return False
 
@@ -267,7 +333,6 @@ class SnakeGame:
         while True:
             if self.game_state == GameState.RUNNING:
                 _, done = self.tick()
-
                 if done:
                     self.game_state = GameState.STOPPED
                     self.display_game_over()

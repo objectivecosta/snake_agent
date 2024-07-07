@@ -2,9 +2,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class SnakeNetwork(nn.Module):
-    def __init__(self, grid_width, grid_height):
-        super(SnakeNetwork, self).__init__()
+class SnakeLinearNetwork(nn.Module):
+    def __init__(self):
+        super(SnakeLinearNetwork, self).__init__()
 
         # Input size will be:
         # [
@@ -26,7 +26,7 @@ class SnakeNetwork(nn.Module):
 
         # Fully connected layers for combined inputs
         self.fc1 = nn.Linear(11, 256)
-        self.fc2 = nn.Linear(256, 4)
+        self.fc2 = nn.Linear(256, 3)
 
     def forward(self, x):
         # Ensure input x has a batch dimension
