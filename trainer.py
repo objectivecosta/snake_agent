@@ -19,6 +19,7 @@ EPSILON_DECAY = 0.985
 EPSILON_REDUCTION = 0.0025
 GAMMA = 0.9
 TARGET_UPDATE_FREQ = 25
+TARGET_SAVE_FREQ = 100
 LR = 0.001
 
 class TrainingLogger:
@@ -229,6 +230,11 @@ class Trainer:
                 self.long_term_learning()
                 idx += 1
                 self.logger.append(self.game.tick_count, self.game.score)
+
+                if idx > 1000 and self.logger.averages[-1] > self.game.score:
+                    print("Slowing down, training is good enough...")
+                    self.game.speed = 75
+
                 self.game.restart()
 
                 if idx % 50 == 0:
@@ -245,6 +251,10 @@ class Trainer:
             print("Epsilon: {}".format(self.epsilon))
             print("Updating target network")
             self.target_network.load_state_dict(self.primary_network.state_dict())
+        if idx % TARGET_SAVE_FREQ == 0:
+            # self.primary_network.
+            # TODO: Save model.
+            pass
 
 
 if __name__ == '__main__':

@@ -311,6 +311,9 @@ class SnakeGame:
 
         if not self.is_agent_playing:
             self.fps_controller.tick(self.speed)
+        else:
+            if self.speed < 200:
+                self.fps_controller.tick(self.speed)
 
         return reward, done
 
