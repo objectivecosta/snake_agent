@@ -5,10 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="65f998b5-e69c-41cf-bcec-77ebe19eed75" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/evaluator.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/trainer_cnn.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model_linear.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_linear.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/trainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/trainer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model_cnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_cnn.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,7 +37,8 @@
   "keyToString": {
     "Python.Evaluate agent.executor": "Run",
     "Python.Run game.executor": "Run",
-    "Python.Train agent.executor": "Run",
+    "Python.Train Convolutional agent.executor": "Run",
+    "Python.Train agent.executor": "Debug",
     "Python.trainer.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "dart.analysis.tool.window.visible": "false",
@@ -58,7 +58,7 @@
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.Evaluate agent">
+  <component name="RunManager" selected="Python.Train Convolutional agent">
     <configuration name="Evaluate agent" type="PythonConfigurationType" factoryName="Python">
       <module name="snake_agent" />
       <option name="ENV_FILES" value="" />
@@ -99,6 +99,30 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="SCRIPT_NAME" value="game_runner.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Train Convolutional agent" type="PythonConfigurationType" factoryName="Python">
+      <module name="snake_agent" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="SDK_NAME" value="Python 3.9 (snake_agent)" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="trainer_cnn.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -157,6 +181,7 @@
     <list>
       <item itemvalue="Python.Run game" />
       <item itemvalue="Python.Train agent" />
+      <item itemvalue="Python.Train Convolutional agent" />
       <item itemvalue="Python.Evaluate agent" />
       <item itemvalue="Python.trainer" />
     </list>
@@ -185,6 +210,7 @@
       <workItem from="1719642712847" duration="4164000" />
       <workItem from="1719657617786" duration="18074000" />
       <workItem from="1720261670334" duration="30254000" />
+      <workItem from="1720710435798" duration="2803000" />
     </task>
     <servers />
   </component>
@@ -203,9 +229,10 @@
     </option>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/snake_agent$Train_agent.coverage" NAME="Train agent Coverage Results" MODIFIED="1720645984237" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/snake_agent$Train_agent.coverage" NAME="Train agent Coverage Results" MODIFIED="1720711287818" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/snake_agent$Evaluate_agent.coverage" NAME="Evaluate agent Coverage Results" MODIFIED="1720646343911" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/snake_agent$trainer.coverage" NAME="trainer Coverage Results" MODIFIED="1719761931869" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/snake_agent$Train_Convolutional_agent.coverage" NAME="Train Convolutional agent Coverage Results" MODIFIED="1720712213290" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/snake_agent$Run_game.coverage" NAME="Run game Coverage Results" MODIFIED="1720359671583" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
   </component>
 </project>
