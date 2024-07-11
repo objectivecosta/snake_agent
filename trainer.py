@@ -129,88 +129,41 @@ class Trainer:
             reward = reward.unsqueeze(0)
             done = done.unsqueeze(0)
 
-        q_value = self.primary_network(state).gather(1, action.unsqueeze(1)).squeeze(1)
-        # next_q_value = self.target_network(next_state).max(1)[0]
-        next_q_value = self.primary_network(next_state).max(1)[0]
-        target_q_value = reward + self.gamma * next_q_value * (1 - done)
+        # Reshaping one-dimensional action to be a 1, 1 vector
+        action_unsqueezed = action.unsqueeze(1)
+
+        # Fetching network estimation for this state (estimation of which action)
+        primary_network_value = self.primary_network(state)
+
+        # Gathering, from the network, what Q value it estimated for the action we took
+        # (i.e. if action was 0, we gather the 0-th element. This needs to be 1 dimensioned because we want to
+        # get the inner value.)
+        pre_q_value = primary_network_value.gather(1, action_unsqueezed)
+
+        # We squeeze it back into a 1D value, so we can actually do simple math with it.
+        q_value = pre_q_value.squeeze(1)
+
+        # Now we make an estimation of the next q_value, given the state we end up with.
+        next_q_value = self.target_network(next_state).max(1)[0]
+
+        # And now we do the Bellman equation to actually see the Q value of this action,
+        # based on the reward + the next state.
+        target_q_value = reward + (1 - done) * self.gamma * next_q_value
+
+        # The model predicted some Q value. We estimate, via Bellman equations, another one.
+        # We need to start working on minimizing this loss to train the model.
 
         # Compute loss with importance-sampling weights
+        self.optimizer.zero_grad()
         loss = F.mse_loss(q_value, target_q_value)
-
-        self.optimizer.zero_grad()
         loss.backward()
-        self.optimizer.step()
-
-    def q_learning_alt(self, state, action, reward, next_state, done):
-        state = torch.tensor(state, dtype=torch.float32)
-        next_state = torch.tensor(next_state, dtype=torch.float32)
-        action = torch.tensor(action, dtype=torch.int64)
-        reward = torch.tensor(reward, dtype=torch.float32)
-        done = torch.tensor(done, dtype=torch.float32)
-
-        if state.dim() == 1:
-            state = state.unsqueeze(0)
-            next_state = next_state.unsqueeze(0)
-            action = action.unsqueeze(0)
-            reward = reward.unsqueeze(0)
-            done = done.unsqueeze(0)
-
-        # 1: predicted Q values with current state
-        pred = self.primary_network(state)
-
-        target = pred.clone()
-        for idx in range(len(done)):
-            Q_new = reward[idx]
-            if not done[idx]:
-                Q_new = reward[idx] + self.gamma * torch.max(self.primary_network(next_state[idx]))
-
-            target[idx][torch.argmax(action[idx]).item()] = Q_new
-
-        # Compute loss with importance-sampling weights
-        loss = F.mse_loss(target, pred)
-
-        self.optimizer.zero_grad()
-
-        loss.backward()
-
-        self.optimizer.step()
-
-    def q_learning_alt2(self, state, action, reward, next_state, done):
-        state = torch.tensor(state, dtype=torch.float)
-        next_state = torch.tensor(next_state, dtype=torch.float)
-        action = torch.tensor(action, dtype=torch.long)
-        reward = torch.tensor(reward, dtype=torch.float)
-
-        if state.dim() == 1:
-            state = state.unsqueeze(0)
-            next_state = next_state.unsqueeze(0)
-            action = action.unsqueeze(0)
-            reward = reward.unsqueeze(0)
-            done = (done, )
-
-        # 1: predicted Q values with current state
-        pred = self.primary_network(state)
-
-        target = pred.clone()
-        for idx in range(len(done)):
-            Q_new = reward[idx]
-            if not done[idx]:
-                Q_new = reward[idx] + self.gamma * torch.max(self.primary_network(next_state[idx]))
-
-            target[idx][torch.argmax(action[idx]).item()] = Q_new
-
-        self.optimizer.zero_grad()
-
-        loss = F.mse_loss(target, pred)
-        loss.backward()
-
         self.optimizer.step()
 
     def long_term_learning(self):
         batch = self.replay_buffer.sample(BATCH_SIZE)
         state_batch, action_batch, reward_batch, next_state_batch, done_batch = zip(*batch)
 
-        self.q_learning_alt2(state_batch, action_batch, reward_batch, next_state_batch, done_batch)
+        self.q_learning(state_batch, action_batch, reward_batch, next_state_batch, done_batch)
 
     def train(self):
         idx = 0
@@ -223,8 +176,8 @@ class Trainer:
             reward, done = self.game.tick()
             next_state = self.game_feature_extractor.linear_inputs()
 
-            self.replay_buffer.push(Replay(state, action.array_from_action(), reward, next_state, done))
-            self.q_learning_alt2(state, action.array_from_action(), reward, next_state, done)
+            self.replay_buffer.push(Replay(state, action.index_from_action(), reward, next_state, done))
+            self.q_learning(state, action.index_from_action(), reward, next_state, done)
 
             if done:
                 self.long_term_learning()
@@ -252,8 +205,7 @@ class Trainer:
             print("Updating target network")
             self.target_network.load_state_dict(self.primary_network.state_dict())
         if idx % TARGET_SAVE_FREQ == 0:
-            # self.primary_network.
-            # TODO: Save model.
+            self.target_network.write_to_disk()
             pass
 
 

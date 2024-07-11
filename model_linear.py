@@ -1,5 +1,9 @@
+from pathlib import Path
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import os
 
 
 class SnakeLinearNetwork(nn.Module):
@@ -23,7 +27,6 @@ class SnakeLinearNetwork(nn.Module):
         #   is food down,
         # ]
 
-
         # Fully connected layers for combined inputs
         self.fc1 = nn.Linear(11, 256)
         self.fc2 = nn.Linear(256, 3)
@@ -37,3 +40,24 @@ class SnakeLinearNetwork(nn.Module):
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return x
+
+    def write_to_disk(self):
+        model_folder_path = './model'
+        file_name = Path(__file__).stem
+        if not os.path.exists(model_folder_path):
+            os.makedirs(model_folder_path)
+
+        file_name = os.path.join(model_folder_path, "{}.pth".format(file_name))
+        torch.save(self.state_dict(), file_name)
+
+    def read_from_disk(self):
+        model_folder_path = './model'
+        file_name = Path(__file__).stem
+
+        if not os.path.exists(model_folder_path):
+            os.makedirs(model_folder_path)
+
+        file_name = os.path.join(model_folder_path, "{}.pth".format(file_name))
+
+        self.load_state_dict(torch.load(file_name))
+        self.eval()
